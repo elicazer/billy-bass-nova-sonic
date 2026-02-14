@@ -151,6 +151,7 @@ class BillyNova:
     def __init__(self):
         self.billy = Billy()
         self.client = NovaSonicClient(
+            model_id='amazon.nova-2-sonic-v1:0',  # Nova 2 Sonic
             region=os.getenv("AWS_REGION", "us-east-1"),
             voice_id="matthew",
             input_device_index=int(INPUT_DEVICE_INDEX) if INPUT_DEVICE_INDEX else None,
@@ -170,17 +171,24 @@ class BillyNova:
         if BUTTON_AVAILABLE:
             self.button = Button(BUTTON_PIN, pull_up=True, bounce_time=0.1)
             self.button.when_pressed = self.on_button_press
-            print(f"✓ Button configured on GPIO {BUTTON_PIN}")
+            print(f"✓ Button configured on GPIO {BUTTON_PIN} (press to toggle listening)")
         else:
             self.button = None
             self.listening_active = True  # Always active on Mac
             print("⚠️  No button - listening always active")
 
     def on_button_press(self):
-        """Button pressed - activate listening"""
-        print("🔘 Button pressed - activating listening")
-        self.listening_active = True
-        self.last_activity_time = time.time()
+        """Button pressed - toggle listening"""
+        if self.listening_active:
+            print("🔘 Button pressed - STOPPING listening")
+            self.listening_active = False
+            if self.audio_capture_task:
+                self.audio_capture_task.cancel()
+                self.audio_capture_task = None
+        else:
+            print("🔘 Button pressed - STARTING listening")
+            self.listening_active = True
+            self.last_activity_time = time.time()
 
     def on_audio_chunk(self, chunk: bytes):
         # Drive mouth during playback
