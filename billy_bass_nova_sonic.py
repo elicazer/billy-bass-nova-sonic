@@ -170,8 +170,9 @@ class BillyNova:
             current_time = time.time()
             
             if self.billy.torso_active and current_time - self.last_audio_time > 1.0:
-                # No audio for 1 second, return torso
-                self.billy.torso_end()
+                # No audio for 1 second, return torso (run in executor to avoid blocking)
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, self.billy.torso_end)
                 self.billy.mouth_controller.reset()
                 last_wag_time = current_time  # Reset wag timer after speaking
             
