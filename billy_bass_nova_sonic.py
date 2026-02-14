@@ -321,10 +321,11 @@ class BillyNova:
             print("✓ Cleanup complete")
     
     async def idle_wag(self):
-        """Wag tail when idle"""
+        """Wag tail when idle and listening is active"""
         while True:
             await asyncio.sleep(3.0)
-            if not self.speaking and self.billy.torso:
+            # Only wag if listening is active and not speaking
+            if self.listening_active and not self.speaking and self.billy.torso:
                 self.billy.torso.throttle = 0.3 * TORSO_DIR
                 await asyncio.sleep(0.15)
                 self.billy.torso.throttle = -0.3 * TORSO_DIR
