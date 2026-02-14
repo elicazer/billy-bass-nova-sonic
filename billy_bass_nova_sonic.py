@@ -161,12 +161,31 @@ class BillyNova:
 
     async def monitor_torso(self):
         """Monitor audio activity and return torso to rest after silence"""
+        idle_wag_enabled = True
+        wag_interval = 3.0  # Wag every 3 seconds when idle
+        last_wag_time = 0
+        
         while True:
             await asyncio.sleep(0.1)
-            if self.billy.torso_active and time.time() - self.last_audio_time > 1.0:
+            current_time = time.time()
+            
+            if self.billy.torso_active and current_time - self.last_audio_time > 1.0:
                 # No audio for 1 second, return torso
                 self.billy.torso_end()
                 self.billy.mouth_controller.reset()
+                last_wag_time = current_time  # Reset wag timer after speaking
+            
+            # Idle tail wag when not active
+            elif not self.billy.torso_active and idle_wag_enabled:
+                if current_time - last_wag_time > wag_interval:
+                    # Quick tail wag
+                    if self.billy.torso:
+                        self.billy.torso.throttle = 0.3 * TORSO_DIR
+                        await asyncio.sleep(0.15)
+                        self.billy.torso.throttle = -0.3 * TORSO_DIR
+                        await asyncio.sleep(0.15)
+                        self.billy.torso.throttle = 0
+                    last_wag_time = current_time
 
     async def run(self):
         await self.client.start_session()
