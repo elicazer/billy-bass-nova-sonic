@@ -1,0 +1,16 @@
+# Core dependencies (Mac and Pi)
+google-generativeai
+gtts
+pyaudio
+numpy
+boto3
+amazon-transcribe
+strands-agents[bidi]
+
+# Motor control (Pi only, optional on Mac)
+adafruit-circuitpython-motorkit
+adafruit-blinka
+
+# Mac-specific notes:
+# Install pyaudio with: brew install portaudio && pip install pyaudio
+# Install ffmpeg with: brew install ffmpeg
