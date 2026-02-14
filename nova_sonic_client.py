@@ -476,6 +476,9 @@ class NovaSonicClient:
                 audio_data = stream.read(CHUNK_SIZE, exception_on_overflow=False)
                 await self.send_audio_chunk(audio_data)
                 await asyncio.sleep(0.01)
+        except asyncio.CancelledError:
+            # Normal cancellation during shutdown
+            pass
         except Exception as e:
             print(f"Error capturing audio: {e}")
         finally:
@@ -483,4 +486,9 @@ class NovaSonicClient:
             stream.close()
             p.terminate()
             print("Audio capture stopped.")
-            await self.end_audio_input()
+            # Only try to end audio input if session is still active
+            if self.is_active:
+                try:
+                    await self.end_audio_input()
+                except Exception:
+                    pass
