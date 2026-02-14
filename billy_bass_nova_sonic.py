@@ -156,6 +156,7 @@ class BillyNova:
         opening = self.billy.mouth_controller.process_audio_chunk(chunk)
         self.billy.drive_mouth(opening)
         if not self.billy.torso_active:
+            print("🔼 Torso going UP")
             self.billy.torso_start()
         
         # Update last audio time
