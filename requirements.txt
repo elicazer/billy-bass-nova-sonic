@@ -6,4 +6,5 @@ adafruit-circuitpython-motorkit
 gpiozero
 boto3
 amazon-transcribe
-strands-agents[bidi]
+aws-sdk-bedrock-runtime
+smithy-aws-core
