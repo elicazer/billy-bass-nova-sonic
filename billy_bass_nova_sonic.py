@@ -179,6 +179,10 @@ class BillyNova:
             current_time = time.time()
             time_since_audio = current_time - self.last_audio_time
             
+            # Debug every loop
+            if self.billy.torso_active:
+                print(f"⏱️  torso_active=True, silence={time_since_audio:.1f}s, last_audio={self.last_audio_time:.1f}")
+            
             # If torso is up and audio stopped for 1 second, bring it down
             if self.billy.torso_active and time_since_audio > 1.0:
                 print(f"🔽 Returning torso (silence: {time_since_audio:.1f}s)")
