@@ -185,10 +185,68 @@ class BillyNova:
             if self.audio_capture_task:
                 self.audio_capture_task.cancel()
                 self.audio_capture_task = None
+            # Say goodbye
+            asyncio.create_task(self.say_text("Goodbye! Press the button if you need me again."))
         else:
             print("🔘 Button pressed - STARTING listening")
             self.listening_active = True
             self.last_activity_time = time.time()
+            # Say greeting
+            asyncio.create_task(self.say_text("Hi! My name is Billy. How can I help you today?"))
+    
+    async def say_text(self, text: str):
+        """Make Billy speak using text input (crossmodal)"""
+        try:
+            # Send text content to make Billy speak
+            content_name = f"text_{time.time()}"
+            
+            # Start text content
+            text_content_start = f'''
+            {{
+                "event": {{
+                    "contentStart": {{
+                        "promptName": "{self.client.prompt_name}",
+                        "contentName": "{content_name}",
+                        "type": "TEXT",
+                        "interactive": false,
+                        "role": "ASSISTANT",
+                        "textInputConfiguration": {{
+                            "mediaType": "text/plain"
+                        }}
+                    }}
+                }}
+            }}
+            '''
+            await self.client.send_event(text_content_start)
+            
+            # Send text
+            text_input = f'''
+            {{
+                "event": {{
+                    "textInput": {{
+                        "promptName": "{self.client.prompt_name}",
+                        "contentName": "{content_name}",
+                        "content": "{text}"
+                    }}
+                }}
+            }}
+            '''
+            await self.client.send_event(text_input)
+            
+            # End text content
+            text_content_end = f'''
+            {{
+                "event": {{
+                    "contentEnd": {{
+                        "promptName": "{self.client.prompt_name}",
+                        "contentName": "{content_name}"
+                    }}
+                }}
+            }}
+            '''
+            await self.client.send_event(text_content_end)
+        except Exception as e:
+            print(f"⚠️  Error sending text: {e}")
 
     def on_audio_chunk(self, chunk: bytes):
         # Drive mouth during playback
@@ -225,6 +283,8 @@ class BillyNova:
                         if self.audio_capture_task:
                             self.audio_capture_task.cancel()
                             self.audio_capture_task = None
+                        # Say goodbye
+                        await self.say_text("I haven't heard from you in a while. Goodbye for now!")
                 
                 # Start capture if button was pressed and not already capturing
                 if self.listening_active and not self.audio_capture_task:
