@@ -11,38 +11,38 @@ kit = MotorKit()
 
 print("Billy Bass Motor Test")
 print("=" * 50)
-print("\nMotor 1 (A1/B1) = Mouth motor")
-print("Motor 2 (A2/B2) = Tail/Torso motor")
+print("\nMotor 2 (M2) = Mouth motor")
+print("Motor 1 (M1) = Tail/Torso motor")
 print("\nWatch the motors and note which direction they move!\n")
 
-# Test Motor 1 (Mouth)
-print("Testing Motor 1 (Mouth) - FORWARD (positive throttle)...")
-kit.motor1.throttle = 0.5
+# Test Motor 2 (Mouth)
+print("Testing Motor 2 (Mouth) - FORWARD (positive throttle)...")
+kit.motor2.throttle = 1.0
 time.sleep(1)
-kit.motor1.throttle = 0
+kit.motor2.throttle = 0
 print("Did the mouth OPEN or CLOSE? (write this down)")
 time.sleep(2)
 
-print("\nTesting Motor 1 (Mouth) - BACKWARD (negative throttle)...")
-kit.motor1.throttle = -0.5
+print("\nTesting Motor 2 (Mouth) - BACKWARD (negative throttle)...")
+kit.motor2.throttle = -1.0
 time.sleep(1)
-kit.motor1.throttle = 0
+kit.motor2.throttle = 0
 print("Did the mouth OPEN or CLOSE? (write this down)")
 time.sleep(2)
 
-# Test Motor 2 (Tail/Torso)
-print("\nTesting Motor 2 (Tail/Torso) - FORWARD...")
-kit.motor2.throttle = 0.5
-time.sleep(1)
-kit.motor2.throttle = 0
-print("Did the tail/torso move? Which direction?")
+# Test Motor 1 (Tail/Torso)
+print("\nTesting Motor 1 (Tail/Torso) - FORWARD (FULL POWER)...")
+kit.motor1.throttle = 1.0
+time.sleep(2)
+kit.motor1.throttle = 0
+print("Did the tail/torso move OUT? (should lean forward)")
 time.sleep(2)
 
-print("\nTesting Motor 2 (Tail/Torso) - BACKWARD...")
-kit.motor2.throttle = -0.5
-time.sleep(1)
-kit.motor2.throttle = 0
-print("Did the tail/torso move? Which direction?")
+print("\nTesting Motor 1 (Tail/Torso) - BACKWARD (FULL POWER)...")
+kit.motor1.throttle = -1.0
+time.sleep(2)
+kit.motor1.throttle = 0
+print("Did the tail/torso move BACK IN? (should return to rest)")
 time.sleep(2)
 
 print("\n" + "=" * 50)

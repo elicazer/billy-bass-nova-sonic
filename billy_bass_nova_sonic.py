@@ -142,6 +142,8 @@ class BillyNova:
         self.client.on_assistant_text = lambda txt: None
         self.audio_play_task = None
         self.audio_capture_task = None
+        self.torso_return_task = None
+        self.last_audio_time = 0
 
     def on_audio_chunk(self, chunk: bytes):
         # Drive mouth and torso during playback
@@ -149,6 +151,22 @@ class BillyNova:
         self.billy.drive_mouth(opening)
         if not self.billy.torso_active:
             self.billy.torso_start()
+        
+        # Update last audio time
+        self.last_audio_time = time.time()
+        
+        # Cancel any pending torso return
+        if self.torso_return_task and not self.torso_return_task.done():
+            self.torso_return_task.cancel()
+
+    async def monitor_torso(self):
+        """Monitor audio activity and return torso to rest after silence"""
+        while True:
+            await asyncio.sleep(0.1)
+            if self.billy.torso_active and time.time() - self.last_audio_time > 1.0:
+                # No audio for 1 second, return torso
+                self.billy.torso_end()
+                self.billy.mouth_controller.reset()
 
     async def run(self):
         await self.client.start_session()
@@ -157,6 +175,8 @@ class BillyNova:
         self.audio_play_task = asyncio.create_task(self.client.play_audio())
         # Start capture (pushes mic frames to Nova) - this will call start_audio_input internally
         self.audio_capture_task = asyncio.create_task(self.client.capture_audio())
+        # Start torso monitor
+        self.torso_return_task = asyncio.create_task(self.monitor_torso())
 
         try:
             while True:
@@ -169,6 +189,8 @@ class BillyNova:
                 self.audio_play_task.cancel()
             if self.audio_capture_task:
                 self.audio_capture_task.cancel()
+            if self.torso_return_task:
+                self.torso_return_task.cancel()
             self.billy.torso_end()
             self.billy.stop_all()
             print("✓ Cleanup complete")
