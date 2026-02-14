@@ -135,7 +135,7 @@ class BillyNova:
             voice_id="matthew",
             input_device_index=int(INPUT_DEVICE_INDEX) if INPUT_DEVICE_INDEX else None,
             output_device_index=int(OUTPUT_DEVICE_INDEX) if OUTPUT_DEVICE_INDEX else None,
-            system_prompt="You are a calm, natural voice. Speak in one or two sentences, no emojis or sound effects."
+            system_prompt="You are Billy Bass, a talking fish mounted on a wall. You're helpful and conversational, but keep responses brief - one or two sentences max. You're aware you're a fish, but don't constantly mention it unless relevant. Be natural and friendly."
         )
         self.client.on_audio_chunk = self.on_audio_chunk
         self.client.on_audio_output = None  # we handle audio playback ourselves
