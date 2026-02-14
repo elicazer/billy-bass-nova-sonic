@@ -166,6 +166,7 @@ class BillyNova:
         self.speaking = False
         self.listening_active = False
         self.last_activity_time = time.time()
+        self.pending_text = None  # Text to speak from button press
         
         # Setup button if available
         if BUTTON_AVAILABLE:
@@ -178,21 +179,21 @@ class BillyNova:
             print("⚠️  No button - listening always active")
 
     def on_button_press(self):
-        """Button pressed - toggle listening"""
+        """Button pressed - toggle listening (called from GPIO thread)"""
         if self.listening_active:
             print("🔘 Button pressed - STOPPING listening")
             self.listening_active = False
             if self.audio_capture_task:
                 self.audio_capture_task.cancel()
                 self.audio_capture_task = None
-            # Say goodbye
-            asyncio.create_task(self.say_text("Goodbye! Press the button if you need me again."))
+            # Queue goodbye message
+            self.pending_text = "Goodbye! Press the button if you need me again."
         else:
             print("🔘 Button pressed - STARTING listening")
             self.listening_active = True
             self.last_activity_time = time.time()
-            # Say greeting
-            asyncio.create_task(self.say_text("Hi! My name is Billy. How can I help you today?"))
+            # Queue greeting message
+            self.pending_text = "Hi! My name is Billy. How can I help you today?"
     
     async def say_text(self, text: str):
         """Make Billy speak using text input (crossmodal)"""
@@ -275,6 +276,12 @@ class BillyNova:
 
         try:
             while True:
+                # Check for pending text to speak
+                if self.pending_text:
+                    text = self.pending_text
+                    self.pending_text = None
+                    await self.say_text(text)
+                
                 # Check for inactivity timeout
                 if self.listening_active and BUTTON_AVAILABLE:
                     if time.time() - self.last_activity_time > INACTIVITY_TIMEOUT:
