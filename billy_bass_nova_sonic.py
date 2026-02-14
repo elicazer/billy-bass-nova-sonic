@@ -169,46 +169,28 @@ class BillyNova:
     async def monitor_torso(self):
         """Monitor audio activity and return torso to rest after silence"""
         idle_wag_enabled = True
-        wag_interval = 3.0  # Wag every 3 seconds when idle
-        last_wag_time = 0
-        returning_torso = False
-        torso_return_start = 0
+        wag_interval = 3.0
+        last_wag_time = time.time()
         
         print("🔍 Torso monitor started")
         
         while True:
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.2)
             current_time = time.time()
             time_since_audio = current_time - self.last_audio_time
             
-            # Debug: print status every 5 seconds
-            if int(current_time) % 5 == 0 and current_time - int(current_time) < 0.1:
-                print(f"📊 Status: torso_active={self.billy.torso_active}, time_since_audio={time_since_audio:.1f}s")
-            
-            # Check if torso is active and audio has stopped
+            # If torso is up and audio stopped for 1 second, bring it down
             if self.billy.torso_active and time_since_audio > 1.0:
-                if not returning_torso:
-                    # Start returning torso
-                    print(f"🔽 Returning torso to rest... (silence for {time_since_audio:.1f}s)")
-                    self.billy.torso_end()
-                    returning_torso = True
-                    torso_return_start = current_time
-                elif current_time - torso_return_start > TORSO_BACK_SEC:
-                    # Stop torso motor after return duration
-                    print(f"⏹️  Stopping torso motor")
-                    self.billy.torso_stop()
-                    returning_torso = False
-                    self.billy.mouth_controller.reset()
-                    last_wag_time = current_time
+                print(f"🔽 Returning torso (silence: {time_since_audio:.1f}s)")
+                self.billy.torso_end()
+                await asyncio.sleep(TORSO_BACK_SEC)
+                self.billy.torso_stop()
+                self.billy.mouth_controller.reset()
+                last_wag_time = current_time
             
-            # Reset returning flag if audio starts again
-            elif self.billy.torso_active:
-                returning_torso = False
-            
-            # Idle tail wag when not active
-            elif not self.billy.torso_active and idle_wag_enabled and not returning_torso:
+            # Idle tail wag when torso is down
+            elif not self.billy.torso_active and idle_wag_enabled:
                 if current_time - last_wag_time > wag_interval:
-                    # Quick tail wag
                     if self.billy.torso:
                         self.billy.torso.throttle = 0.3 * TORSO_DIR
                         await asyncio.sleep(0.15)
