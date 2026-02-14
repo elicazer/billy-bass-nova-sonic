@@ -445,7 +445,7 @@ class NovaSonicClient:
                     audio_data = _resample_pcm(audio_data, OUTPUT_SAMPLE_RATE, device_rate)
                 stream.write(audio_data)
                 if self.on_audio_chunk:
-                    self.on_audio_chunk(audio_data)
+                    self.callback_executor.submit(self._safe_callback, audio_data)
         except Exception as e:
             print(f"Error playing audio: {e}")
         finally:

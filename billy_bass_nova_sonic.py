@@ -146,79 +146,41 @@ class BillyNova:
             system_prompt="You are Billy Bass, a talking fish mounted on a wall. You're helpful and conversational, but keep responses brief - one or two sentences max. You're aware you're a fish, but don't constantly mention it unless relevant. Be natural and friendly."
         )
         self.client.on_audio_chunk = self.on_audio_chunk
-        self.client.on_audio_output = None  # we handle audio playback ourselves
+        self.client.on_audio_output = None
         self.client.on_assistant_text = lambda txt: None
         self.audio_play_task = None
         self.audio_capture_task = None
-        self.torso_return_task = None
-        self.last_audio_time = 0
+        self.speaking = False
 
     def on_audio_chunk(self, chunk: bytes):
-        # Drive mouth and torso during playback
+        # Drive mouth during playback
         opening = self.billy.mouth_controller.process_audio_chunk(chunk)
         self.billy.drive_mouth(opening)
-        if not self.billy.torso_active:
-            print("🔼 Torso going UP")
+        
+        # Torso up when speaking starts
+        if not self.speaking:
             self.billy.torso_start()
-        else:
-            print(f"🔊 Audio chunk (torso already up)")
-        
-        # Update last audio time
-        self.last_audio_time = time.time()
-        
-        # Cancel any pending torso return
-        if self.torso_return_task and not self.torso_return_task.done():
-            self.torso_return_task.cancel()
-
-    async def monitor_torso(self):
-        """Monitor audio activity and return torso to rest after silence"""
-        idle_wag_enabled = True
-        wag_interval = 3.0
-        last_wag_time = time.time()
-        
-        print("🔍 Torso monitor started")
-        
-        while True:
-            await asyncio.sleep(0.2)
-            current_time = time.time()
-            time_since_audio = current_time - self.last_audio_time
-            
-            # Debug every loop
-            if self.billy.torso_active:
-                print(f"⏱️  torso_active=True, silence={time_since_audio:.1f}s, last_audio={self.last_audio_time:.1f}")
-            
-            # If torso is up and audio stopped for 1 second, bring it down
-            if self.billy.torso_active and time_since_audio > 1.0:
-                print(f"🔽 Returning torso (silence: {time_since_audio:.1f}s)")
-                self.billy.torso_end()
-                await asyncio.sleep(TORSO_BACK_SEC)
-                self.billy.torso_stop()
-                self.billy.mouth_controller.reset()
-                last_wag_time = current_time
-            
-            # Idle tail wag when torso is down
-            elif not self.billy.torso_active and idle_wag_enabled:
-                if current_time - last_wag_time > wag_interval:
-                    if self.billy.torso:
-                        self.billy.torso.throttle = 0.3 * TORSO_DIR
-                        await asyncio.sleep(0.15)
-                        self.billy.torso.throttle = -0.3 * TORSO_DIR
-                        await asyncio.sleep(0.15)
-                        self.billy.torso.throttle = 0
-                    last_wag_time = current_time
+            self.speaking = True
 
     async def run(self):
         await self.client.start_session()
 
-        # Start playback (plays straight from client's audio_queue)
         self.audio_play_task = asyncio.create_task(self.client.play_audio())
-        # Start capture (pushes mic frames to Nova) - this will call start_audio_input internally
         self.audio_capture_task = asyncio.create_task(self.client.capture_audio())
-        # Start torso monitor
-        self.torso_return_task = asyncio.create_task(self.monitor_torso())
+        
+        # Simple idle wag
+        asyncio.create_task(self.idle_wag())
 
         try:
             while True:
+                # Check if audio playback is happening
+                if self.speaking and self.client.audio_queue.empty():
+                    await asyncio.sleep(1.0)  # Wait 1 second after audio stops
+                    if self.client.audio_queue.empty():  # Still empty
+                        self.billy.torso_end()
+                        await asyncio.sleep(TORSO_BACK_SEC)
+                        self.billy.torso_stop()
+                        self.speaking = False
                 await asyncio.sleep(0.1)
         except KeyboardInterrupt:
             pass
@@ -228,11 +190,19 @@ class BillyNova:
                 self.audio_play_task.cancel()
             if self.audio_capture_task:
                 self.audio_capture_task.cancel()
-            if self.torso_return_task:
-                self.torso_return_task.cancel()
-            self.billy.torso_end()
             self.billy.stop_all()
             print("✓ Cleanup complete")
+    
+    async def idle_wag(self):
+        """Wag tail when idle"""
+        while True:
+            await asyncio.sleep(3.0)
+            if not self.speaking and self.billy.torso:
+                self.billy.torso.throttle = 0.3 * TORSO_DIR
+                await asyncio.sleep(0.15)
+                self.billy.torso.throttle = -0.3 * TORSO_DIR
+                await asyncio.sleep(0.15)
+                self.billy.torso.throttle = 0
 
 
 def main():
