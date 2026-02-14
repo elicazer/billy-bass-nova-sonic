@@ -201,7 +201,7 @@ class BillyNova:
             # Send text content to make Billy speak
             content_name = f"text_{time.time()}"
             
-            # Start text content
+            # Start text content as USER (not ASSISTANT)
             text_content_start = f'''
             {{
                 "event": {{
@@ -210,7 +210,7 @@ class BillyNova:
                         "contentName": "{content_name}",
                         "type": "TEXT",
                         "interactive": false,
-                        "role": "ASSISTANT",
+                        "role": "USER",
                         "textInputConfiguration": {{
                             "mediaType": "text/plain"
                         }}
@@ -220,14 +220,14 @@ class BillyNova:
             '''
             await self.client.send_event(text_content_start)
             
-            # Send text
+            # Send text as a prompt to respond to
             text_input = f'''
             {{
                 "event": {{
                     "textInput": {{
                         "promptName": "{self.client.prompt_name}",
                         "contentName": "{content_name}",
-                        "content": "{text}"
+                        "content": "Say this exact phrase: {text}"
                     }}
                 }}
             }}
