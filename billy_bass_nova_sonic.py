@@ -98,12 +98,14 @@ class Billy:
 
     def torso_start(self):
         if not self.torso:
+            print("⚠️  No torso motor!")
             return
         try:
             self.torso.throttle = TORSO_FWD * TORSO_DIR
             self.torso_active = True
-        except Exception:
-            pass
+            print(f"✅ torso_active set to True")
+        except Exception as e:
+            print(f"❌ torso_start failed: {e}")
 
     def torso_end(self):
         """Return torso to rest position"""
