@@ -160,6 +160,8 @@ class BillyNova:
         if not self.billy.torso_active:
             print("🔼 Torso going UP")
             self.billy.torso_start()
+        else:
+            print(f"🔊 Audio chunk (torso already up)")
         
         # Update last audio time
         self.last_audio_time = time.time()
