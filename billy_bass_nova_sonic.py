@@ -174,15 +174,22 @@ class BillyNova:
         returning_torso = False
         torso_return_start = 0
         
+        print("🔍 Torso monitor started")
+        
         while True:
             await asyncio.sleep(0.1)
             current_time = time.time()
+            time_since_audio = current_time - self.last_audio_time
+            
+            # Debug: print status every 5 seconds
+            if int(current_time) % 5 == 0 and current_time - int(current_time) < 0.1:
+                print(f"📊 Status: torso_active={self.billy.torso_active}, time_since_audio={time_since_audio:.1f}s")
             
             # Check if torso is active and audio has stopped
-            if self.billy.torso_active and current_time - self.last_audio_time > 1.0:
+            if self.billy.torso_active and time_since_audio > 1.0:
                 if not returning_torso:
                     # Start returning torso
-                    print(f"🔽 Returning torso to rest...")
+                    print(f"🔽 Returning torso to rest... (silence for {time_since_audio:.1f}s)")
                     self.billy.torso_end()
                     returning_torso = True
                     torso_return_start = current_time
