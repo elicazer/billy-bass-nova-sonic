@@ -171,6 +171,7 @@ class BillyNova:
         wag_interval = 3.0  # Wag every 3 seconds when idle
         last_wag_time = 0
         returning_torso = False
+        torso_return_start = 0
         
         while True:
             await asyncio.sleep(0.1)
@@ -180,11 +181,13 @@ class BillyNova:
             if self.billy.torso_active and current_time - self.last_audio_time > 1.0:
                 if not returning_torso:
                     # Start returning torso
+                    print(f"🔽 Returning torso to rest...")
                     self.billy.torso_end()
                     returning_torso = True
                     torso_return_start = current_time
                 elif current_time - torso_return_start > TORSO_BACK_SEC:
                     # Stop torso motor after return duration
+                    print(f"⏹️  Stopping torso motor")
                     self.billy.torso_stop()
                     returning_torso = False
                     self.billy.mouth_controller.reset()
