@@ -43,6 +43,7 @@ TORSO_MOTOR = int(os.getenv("TORSO_MOTOR", os.getenv("TAIL_MOTOR", "1")))
 
 # Button config
 BUTTON_PIN = int(os.getenv("BUTTON_PIN", "17"))  # GPIO pin for front button
+SHUTDOWN_PIN = int(os.getenv("SHUTDOWN_PIN", "27"))  # GPIO pin for back switch
 INACTIVITY_TIMEOUT = 30  # seconds
 
 # Direction tweaks (set to -1 to invert)
@@ -168,18 +169,28 @@ class BillyNova:
         self.last_activity_time = time.time()
         self.pending_text = None  # Text to speak from button press
         
-        # Setup button if available
+        # Setup front button if available
         if BUTTON_AVAILABLE:
             self.button = Button(BUTTON_PIN, pull_up=True, bounce_time=0.1)
             self.button.when_pressed = self.on_button_press
-            print(f"✓ Button configured on GPIO {BUTTON_PIN} (press to toggle listening)")
+            print(f"✓ Front button configured on GPIO {BUTTON_PIN} (press to toggle listening)")
+            
+            # Setup shutdown button (back switch)
+            try:
+                self.shutdown_button = Button(SHUTDOWN_PIN, pull_up=True, bounce_time=0.2)
+                self.shutdown_button.when_pressed = self.on_shutdown_press
+                print(f"✓ Shutdown button configured on GPIO {SHUTDOWN_PIN} (press to shutdown Pi)")
+            except Exception as e:
+                print(f"⚠️  Shutdown button setup failed: {e}")
+                self.shutdown_button = None
         else:
             self.button = None
+            self.shutdown_button = None
             self.listening_active = True  # Always active on Mac
             print("⚠️  No button - listening always active")
 
     def on_button_press(self):
-        """Button pressed - toggle listening (called from GPIO thread)"""
+        """Front button pressed - toggle listening (called from GPIO thread)"""
         if self.listening_active:
             print("🔘 Button pressed - STOPPING listening")
             self.listening_active = False
@@ -194,6 +205,17 @@ class BillyNova:
             self.last_activity_time = time.time()
             # Queue greeting message
             self.pending_text = "Hi! My name is Billy. How can I help you today?"
+    
+    def on_shutdown_press(self):
+        """Back shutdown button pressed - shutdown the Pi (called from GPIO thread)"""
+        import subprocess
+        print("🔴 SHUTDOWN button pressed - powering down Pi...")
+        try:
+            # Run shutdown command
+            subprocess.run(['sudo', 'shutdown', '-h', 'now'], check=True)
+        except Exception as e:
+            print(f"⚠️  Shutdown failed: {e}")
+            print("Make sure the script has sudo permissions or add to sudoers:")
     
     async def say_text(self, text: str):
         """Make Billy speak using text input (crossmodal)"""
@@ -317,6 +339,8 @@ class BillyNova:
                 self.audio_capture_task.cancel()
             if self.button:
                 self.button.close()
+            if self.shutdown_button:
+                self.shutdown_button.close()
             self.billy.stop_all()
             print("✓ Cleanup complete")
     

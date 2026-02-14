@@ -7,6 +7,8 @@ Turn your Big Mouth Billy Bass into a real-time voice assistant using Amazon Nov
 - **Low-latency speech-to-speech** using Amazon Nova Sonic bidirectional streaming
 - **Real-time mouth animation** synced to audio output
 - **Torso/tail movement** during conversation
+- **Button-activated listening** with auto-timeout
+- **GPIO shutdown button** for easy power-off
 - **Cross-platform development** (Mac demo mode + Raspberry Pi production)
 
 ## Hardware Requirements
@@ -17,6 +19,8 @@ Turn your Big Mouth Billy Bass into a real-time voice assistant using Amazon Nov
 - USB microphone
 - USB speaker (or 3.5mm audio out)
 - Power supply for motors (separate from Pi)
+- Push button for front panel (GPIO 17 to GND)
+- Push button for back shutdown (GPIO 27 to GND) - optional
 
 ## Motor Wiring
 
@@ -30,6 +34,26 @@ export MOUTH_MOTOR=2
 export TORSO_MOTOR=1
 export MOUTH_DIR=-1    # Invert direction if needed
 export TORSO_DIR=-1
+```
+
+## Button Wiring
+
+### Front Button (Listening Toggle)
+- **GPIO 17** → One side of button
+- **GND** → Other side of button
+- Uses internal pull-up resistor (no external resistor needed)
+- Press to start listening, press again to stop
+
+### Back Button (Shutdown) - Optional
+- **GPIO 27** → One side of button
+- **GND** → Other side of button
+- Uses internal pull-up resistor
+- Press to safely shutdown the Pi
+
+Configure button pins via environment variables:
+```bash
+export BUTTON_PIN=17        # Front button (default)
+export SHUTDOWN_PIN=27      # Back shutdown button (default)
 ```
 
 ## Setup
@@ -115,10 +139,13 @@ Motors will be simulated with console output.
 
 ## How It Works
 
-1. **Continuous audio streaming** — microphone audio streams to Nova Sonic at 16 kHz
-2. **Real-time AI processing** — Nova Sonic processes speech and generates responses
-3. **Audio output streaming** — response audio streams back at 24 kHz
-4. **Synchronized animation** — mouth opens/closes based on audio amplitude, torso moves during speech
+1. **Button activation** — press front button to start listening (Billy says "Hi!")
+2. **Continuous audio streaming** — microphone audio streams to Nova Sonic at 16 kHz
+3. **Real-time AI processing** — Nova Sonic processes speech and generates responses
+4. **Audio output streaming** — response audio streams back at 24 kHz
+5. **Synchronized animation** — mouth opens/closes based on audio amplitude, torso moves during speech
+6. **Auto-timeout** — after 30 seconds of inactivity, Billy says goodbye and stops listening
+7. **Shutdown** — press back button to safely power down the Pi
 
 No separate transcription or TTS steps — everything happens in real-time over a single bidirectional stream.
 
@@ -182,6 +209,19 @@ system_prompt="You are a calm, natural voice..."
 - Verify I2C: `sudo i2cdetect -y 1` should show `0x60`
 - Check motor power supply is connected
 - Run `python3 test_motors.py` to test each motor
+
+**Button doesn't work:**
+- Test button: `python3 test_button.py`
+- Verify wiring: GPIO 17 to one side, GND to other
+- Check GPIO isn't already in use by another process
+
+**Shutdown button requires password:**
+- Add to sudoers for passwordless shutdown:
+```bash
+sudo visudo
+# Add this line at the end:
+yourusername ALL=(ALL) NOPASSWD: /sbin/shutdown
+```
 
 **Motor moves wrong direction:**
 - Set `MOUTH_DIR=-1` or `TORSO_DIR=-1` to invert
