@@ -32,6 +32,27 @@ FORMAT = pyaudio.paInt16
 CHUNK_SIZE = 1024
 
 
+def _resample_pcm(audio_data: bytes, from_rate: int, to_rate: int) -> bytes:
+    """Resample PCM audio data from one sample rate to another."""
+    import numpy as np
+    
+    # Convert bytes to numpy array
+    audio_array = np.frombuffer(audio_data, dtype=np.int16)
+    
+    # Calculate resampling ratio
+    ratio = to_rate / from_rate
+    
+    # Calculate new length
+    new_length = int(len(audio_array) * ratio)
+    
+    # Resample using linear interpolation
+    indices = np.linspace(0, len(audio_array) - 1, new_length)
+    resampled = np.interp(indices, np.arange(len(audio_array)), audio_array)
+    
+    # Convert back to int16 and bytes
+    return resampled.astype(np.int16).tobytes()
+
+
 class NovaSonicClient:
     """
     Client for Amazon Nova Sonic speech-to-speech interaction
