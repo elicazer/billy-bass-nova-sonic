@@ -29,9 +29,21 @@ try:
 except Exception:
     MOTOR_LIB = None
 
+# Try to import button support
+try:
+    from gpiozero import Button
+    BUTTON_AVAILABLE = True
+except Exception:
+    BUTTON_AVAILABLE = False
+    print("⚠️  GPIO button not available (running on Mac?)")
+
 # Motor config (env overridable)
 MOUTH_MOTOR = int(os.getenv("MOUTH_MOTOR", "2"))
 TORSO_MOTOR = int(os.getenv("TORSO_MOTOR", os.getenv("TAIL_MOTOR", "1")))
+
+# Button config
+BUTTON_PIN = int(os.getenv("BUTTON_PIN", "17"))  # GPIO pin for front button
+INACTIVITY_TIMEOUT = 30  # seconds
 
 # Direction tweaks (set to -1 to invert)
 MOUTH_DIR = int(os.getenv("MOUTH_DIR", "1"))
@@ -151,6 +163,24 @@ class BillyNova:
         self.audio_play_task = None
         self.audio_capture_task = None
         self.speaking = False
+        self.listening_active = False
+        self.last_activity_time = time.time()
+        
+        # Setup button if available
+        if BUTTON_AVAILABLE:
+            self.button = Button(BUTTON_PIN, pull_up=True, bounce_time=0.1)
+            self.button.when_pressed = self.on_button_press
+            print(f"✓ Button configured on GPIO {BUTTON_PIN}")
+        else:
+            self.button = None
+            self.listening_active = True  # Always active on Mac
+            print("⚠️  No button - listening always active")
+
+    def on_button_press(self):
+        """Button pressed - activate listening"""
+        print("🔘 Button pressed - activating listening")
+        self.listening_active = True
+        self.last_activity_time = time.time()
 
     def on_audio_chunk(self, chunk: bytes):
         # Drive mouth during playback
@@ -161,18 +191,38 @@ class BillyNova:
         if not self.speaking:
             self.billy.torso_start()
             self.speaking = True
+        
+        # Update activity time
+        self.last_activity_time = time.time()
 
     async def run(self):
         await self.client.start_session()
 
         self.audio_play_task = asyncio.create_task(self.client.play_audio())
-        self.audio_capture_task = asyncio.create_task(self.client.capture_audio())
+        
+        # Only start capture if button pressed or no button available
+        if self.listening_active:
+            self.audio_capture_task = asyncio.create_task(self.client.capture_audio())
         
         # Simple idle wag
         asyncio.create_task(self.idle_wag())
 
         try:
             while True:
+                # Check for inactivity timeout
+                if self.listening_active and BUTTON_AVAILABLE:
+                    if time.time() - self.last_activity_time > INACTIVITY_TIMEOUT:
+                        print(f"⏱️  Inactivity timeout ({INACTIVITY_TIMEOUT}s) - deactivating listening")
+                        self.listening_active = False
+                        if self.audio_capture_task:
+                            self.audio_capture_task.cancel()
+                            self.audio_capture_task = None
+                
+                # Start capture if button was pressed and not already capturing
+                if self.listening_active and not self.audio_capture_task:
+                    print("🎤 Starting audio capture...")
+                    self.audio_capture_task = asyncio.create_task(self.client.capture_audio())
+                
                 # Check if audio playback is happening
                 if self.speaking and self.client.audio_queue.empty():
                     await asyncio.sleep(1.0)  # Wait 1 second after audio stops
@@ -190,6 +240,8 @@ class BillyNova:
                 self.audio_play_task.cancel()
             if self.audio_capture_task:
                 self.audio_capture_task.cancel()
+            if self.button:
+                self.button.close()
             self.billy.stop_all()
             print("✓ Cleanup complete")
     
