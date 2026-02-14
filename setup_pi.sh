@@ -16,7 +16,7 @@ sudo apt-get install -y python3-pip python3-pyaudio portaudio19-dev ffmpeg i2c-t
 # Install Python packages
 echo ""
 echo "Installing Python packages..."
-pip3 install -r requirements_dev.txt
+pip3 install -r requirements.txt --break-system-packages
 
 # Enable I2C
 echo ""
@@ -32,18 +32,13 @@ fi
 echo ""
 echo "✅ Setup complete!"
 echo ""
-echo "Before running, set your Gemini API key:"
-echo "  export GEMINI_API_KEY='your-api-key-here'"
-echo ""
-echo "Or add to ~/.bashrc:"
-echo "  echo \"export GEMINI_API_KEY='your-key'\" >> ~/.bashrc"
-echo "  source ~/.bashrc"
+echo "Before running, configure your .env file with AWS credentials"
 echo ""
 echo "To check I2C devices:"
 echo "  sudo i2cdetect -y 1"
 echo ""
 echo "To test motors:"
-echo "  python3 billy_bass_cross_platform.py test"
+echo "  python3 test_motors.py"
 echo ""
 echo "To run Billy Bass:"
-echo "  python3 billy_bass_cross_platform.py"
+echo "  ./start.sh"
