@@ -167,6 +167,7 @@ class BillyNova:
         self.speaking = False
         self.listening_active = False
         self.last_activity_time = time.time()
+        self.last_audio_time = time.time()
         self.pending_text = None  # Text to speak from button press
         
         # Setup front button if available
@@ -280,9 +281,11 @@ class BillyNova:
         if not self.speaking:
             self.billy.torso_start()
             self.speaking = True
+            print("🎤 Torso UP - Billy is speaking")
         
-        # Update activity time
+        # Update activity time and last audio time
         self.last_activity_time = time.time()
+        self.last_audio_time = time.time()
 
     async def run(self):
         await self.client.start_session()
@@ -329,10 +332,11 @@ class BillyNova:
                     print("🎤 Starting audio capture...")
                     self.audio_capture_task = asyncio.create_task(self.client.capture_audio())
                 
-                # Check if audio playback is happening
-                if self.speaking and self.client.audio_queue.empty():
-                    await asyncio.sleep(1.0)  # Wait 1 second after audio stops
-                    if self.client.audio_queue.empty():  # Still empty
+                # Check if audio playback is happening - use time-based check instead of queue
+                if self.speaking:
+                    time_since_audio = time.time() - self.last_audio_time
+                    if time_since_audio > 2.0:  # 2 seconds since last audio chunk
+                        print("🔽 Torso DOWN - Billy finished speaking")
                         self.billy.torso_end()
                         await asyncio.sleep(TORSO_BACK_SEC)
                         self.billy.torso_stop()
