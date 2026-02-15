@@ -298,6 +298,15 @@ class BillyNova:
 
         try:
             while True:
+                # Check if tasks are still alive
+                if self.audio_play_task and self.audio_play_task.done():
+                    print("⚠️  Audio playback task died, restarting...")
+                    self.audio_play_task = asyncio.create_task(self.client.play_audio())
+                
+                if self.audio_capture_task and self.audio_capture_task.done() and self.listening_active:
+                    print("⚠️  Audio capture task died, restarting...")
+                    self.audio_capture_task = asyncio.create_task(self.client.capture_audio())
+                
                 # Check for pending text to speak
                 if self.pending_text:
                     text = self.pending_text
@@ -331,6 +340,10 @@ class BillyNova:
                 await asyncio.sleep(0.1)
         except KeyboardInterrupt:
             pass
+        except Exception as e:
+            print(f"❌ Error in main loop: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
             await self.client.end_session()
             if self.audio_play_task:
@@ -346,15 +359,18 @@ class BillyNova:
     
     async def idle_wag(self):
         """Wag tail when idle and listening is active"""
-        while True:
-            await asyncio.sleep(3.0)
-            # Only wag if listening is active and not speaking
-            if self.listening_active and not self.speaking and self.billy.torso:
-                self.billy.torso.throttle = 0.3 * TORSO_DIR
-                await asyncio.sleep(0.15)
-                self.billy.torso.throttle = -0.3 * TORSO_DIR
-                await asyncio.sleep(0.15)
-                self.billy.torso.throttle = 0
+        try:
+            while True:
+                await asyncio.sleep(3.0)
+                # Only wag if listening is active and not speaking
+                if self.listening_active and not self.speaking and self.billy.torso:
+                    self.billy.torso.throttle = 0.3 * TORSO_DIR
+                    await asyncio.sleep(0.15)
+                    self.billy.torso.throttle = -0.3 * TORSO_DIR
+                    await asyncio.sleep(0.15)
+                    self.billy.torso.throttle = 0
+        except Exception as e:
+            print(f"⚠️  Idle wag error: {e}")
 
 
 def main():
