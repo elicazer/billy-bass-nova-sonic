@@ -204,8 +204,10 @@ class BillyNova:
             print("🔘 Button pressed - STARTING listening")
             self.listening_active = True
             self.last_activity_time = time.time()
+            self.last_audio_time = time.time()  # Reset audio time for greeting
             # Queue greeting message
             self.pending_text = "Hi! My name is Billy. How can I help you today?"
+            print(f"✅ Greeting queued: {self.pending_text}")
     
     def on_shutdown_press(self):
         """Back shutdown button pressed - shutdown the Pi (called from GPIO thread)"""
@@ -314,6 +316,7 @@ class BillyNova:
                 if self.pending_text:
                     text = self.pending_text
                     self.pending_text = None
+                    print(f"📢 Speaking queued text: {text}")
                     await self.say_text(text)
                 
                 # Check for inactivity timeout
