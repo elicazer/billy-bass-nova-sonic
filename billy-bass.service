@@ -1,0 +1,18 @@
+[Unit]
+Description=Billy Bass AI Animatronic
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=eliazer
+WorkingDirectory=/home/eliazer/billy-bass-nova-sonic
+EnvironmentFile=/home/eliazer/billy-bass-nova-sonic/.env
+ExecStart=/usr/bin/python3 /home/eliazer/billy-bass-nova-sonic/billy_bass_nova_sonic.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

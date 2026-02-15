@@ -49,6 +49,7 @@ export TORSO_DIR=-1
 - **GND** → Other side of button
 - Uses internal pull-up resistor
 - Press to safely shutdown the Pi
+- Note: GPIO 3 has wake-on-low feature if you want to use that instead
 
 Configure button pins via environment variables:
 ```bash
@@ -107,6 +108,35 @@ export AWS_ACCESS_KEY_ID=your_key
 export AWS_SECRET_ACCESS_KEY=your_secret
 python3 billy_bass_nova_sonic.py
 ```
+
+### Auto-Start on Boot (Optional)
+
+To make Billy Bass start automatically when you power on the Pi:
+
+```bash
+./install_service.sh
+```
+
+This installs Billy Bass as a systemd service. After installation:
+
+```bash
+# Start the service now
+sudo systemctl start billy-bass
+
+# Check status
+sudo systemctl status billy-bass
+
+# View logs
+sudo journalctl -u billy-bass -f
+
+# Stop the service
+sudo systemctl stop billy-bass
+
+# Disable auto-start
+sudo systemctl disable billy-bass
+```
+
+Once installed, Billy Bass will start automatically on every boot. Just plug in the power and press the button to start talking!
 
 ### Mac (Development)
 
@@ -219,9 +249,10 @@ system_prompt="You are a calm, natural voice..."
 - Add to sudoers for passwordless shutdown:
 ```bash
 sudo visudo
-# Add this line at the end:
-yourusername ALL=(ALL) NOPASSWD: /sbin/shutdown
+# Add this line at the end (replace 'eliazer' with your username):
+eliazer ALL=(ALL) NOPASSWD: /sbin/shutdown
 ```
+- Or run Billy Bass with sudo (not recommended for security)
 
 **Motor moves wrong direction:**
 - Set `MOUTH_DIR=-1` or `TORSO_DIR=-1` to invert
@@ -242,7 +273,11 @@ yourusername ALL=(ALL) NOPASSWD: /sbin/shutdown
 ├── nova_sonic_client.py        # Nova Sonic bidirectional client
 ├── audio_mouth_controller.py   # Smooth mouth animation controller
 ├── test_motors.py              # Motor testing utility
+├── test_button.py              # Button testing utility
+├── test_shutdown_button.py     # Shutdown button testing utility
 ├── start.sh                    # Startup script (loads .env)
+├── billy-bass.service          # Systemd service file
+├── install_service.sh          # Service installation script
 ├── .env.example                # Example configuration file
 ├── .env                        # Your credentials (create from .env.example)
 ├── requirements.txt            # Python dependencies
